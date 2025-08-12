@@ -61,7 +61,6 @@ def telegram_webhook():
     if 'message' in update:
         chat_id = update['message']['chat']['id']
         last_chat_id = chat_id
-        parameter_handler.increase_input()
         chat_activity = 1
 
         if "text" in update["message"]:
@@ -105,6 +104,7 @@ def telegram_webhook():
             parameter_handler.set_parameters_audioInput(auid_file=voice_file_path)
             
             send_message_to_telegram(chat_id, transcript)
+        parameter_handler.increase_input()
         #send updated parameters to the frontend to show on the interface
         shape_parameters , line_parameters, z_plane_parameters = parameter_handler.get_parameters()
         socketio.emit('update_shape_options',shape_parameters)
@@ -131,10 +131,10 @@ def hello():
 def inactivity_checker():
     global chat_activity, webhook_exposed, parameter_handler, last_chat_id
     while True:
-        time.sleep(60)  # Check every 60 seconds
+        time.sleep(90)  # Check every x seconds
         chat_activity -= 1
         random_probality = random.random()
-        if webhook_exposed and chat_activity < 0 and random_probality < 0.7:
+        if webhook_exposed and chat_activity < 0 and random_probality < 0.6:
             # Get the last chat_id
             if last_chat_id > 0:
                 ai_response = get_openai_response("Send a message to re-engage the user after inactivity.")
@@ -374,7 +374,11 @@ def start_print():
             if len(points) > 0:
                 #print outline of the shape
                 if outline:
-                    points.append(points[0])#trace over the start of the outline again
+                    points.append(points[0])#repeat the start of the outline again
+
+                    # Generate G-code for the outline of the shape.
+                    # The max_distance parameter sets the threshold for the distance between points:
+                    # if the distance between two points exceeds this value, no extrusion happens between these points.
                     gcode = slicer_handler.create(height, points, max_distance=200)
                     print_handler.send(gcode)
                     while (print_handler.is_printing() or print_handler.is_paused()):
@@ -386,6 +390,7 @@ def start_print():
                     if len(infill) == 0:
                         print("no infill generated")
                         continue
+                    # generate gcoe of the infill max_distance has to be high for extrision to happen
                     gcode = slicer_handler.create(height, infill, max_distance=500)
                     print_handler.send(gcode)
                     while (print_handler.is_printing() or print_handler.is_paused()):
@@ -404,7 +409,7 @@ def start_print():
         #check and remove any center point that is too narrow
         for i in reversed(range(len(shape_handler.current_diameter))):
             diameter = shape_handler.current_diameter[i]
-            if diameter[0] <= 2 or diameter[1] <= 2:
+            if diameter[0] <= 5 or diameter[1] <= 5:
                 emit('remove_center_point', {'index': i})
                 time.sleep(5)
             

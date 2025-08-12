@@ -113,6 +113,13 @@ At the moment no integrated in the code base. The process would be similar to tr
 - **F** (often referred to as feed rate) controls how fast the x, y move happens, and consequently also how fast the extrusion happens. Here as well, increase slightly when the clay is wetter. A good starting value is around 1200.
 - The **New/Home** button brings the printer head back to its home position and resets the layer count to 0, but does not reset any other values.
 - **Max height:** Can be set in the `app.py` file at the very top. Determines the maximal height of the object to print. If the specified height is reached the printer stops. *Note: the maximal height also includes the starting heigth*
+- **Max distance:**The max_distance parameter in the gcode create function sets the threshold for the distance between points:
+                    if the distance between two points exceeds this value, no extrusion happens between these points.
+                    The relevant functions gets called twice in the app.py script for generating the gcode of the shape outline and for the inflill as well.
+                    ```python
+                    # points with distance over 200 will not be connected by during the printing
+                    gcode = slicer_handler.create(height, points, max_distance=200)
+                    ```
 
 # Geometry Taxonomy
 *Note: Also see the Google Sheet for reference.*
